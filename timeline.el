@@ -29,23 +29,24 @@
 
 (defun heading-year ()
   "Parses an Org header (string of * followed by optional title)"
-  (parsec-and
+  (parsec-collect*
    (heading)
-   (parsec-string " ")
+   (parsec-optional* (parsec-string " "))
    (year)))
 
 (parsec-with-input "**** 2015" (parsec-parse (heading-year)))
 
 (defun heading-year-month ()
-  (parsec-and (heading-year)
-	      (parsec-ch ?-)
-	      (parsec-many-as-string (parsec-digit))
-	      (parsec-string " ")
-	      (parsec-many-as-string (parsec-letter))))
+  (parsec-collect*
+   (heading-year)
+   (parsec-ch ?-)
+   (parsec-many-as-string (parsec-digit))
+   (parsec-optional* (parsec-string " "))
+   (parsec-many-as-string (parsec-letter))))
 
 (defun heading-year-month-day ()
   (parsec-and (heading-year-month)
-	      (parsec-string " ")
+	      (parsec-optional* (parsec-string " "))
 	      (parsec-many-as-string (parsec-letter))))
 
 ;; example:
@@ -54,4 +55,4 @@
 ;; *** 1912-06-01 Saturday
 
 (parsec-with-input "* 1912-06 June"
-  (parsec-parse (heading-year-month-day)))
+  (parsec-parse (heading-year-month)))
