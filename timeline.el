@@ -68,7 +68,7 @@ words for the days of the week."
 (defun heading-year-month ()
   (parsec-collect*
    (heading-year)
-   (parsec-ch ?-)
+   (dash)
    (parsec-many-as-string (parsec-digit))
    (ignore-whitespace)
    (parsec-many-as-string (parsec-letter))))
