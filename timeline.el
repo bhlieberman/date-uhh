@@ -62,7 +62,7 @@ words for the days of the week."
   "Parses an Org header followed by an optional date-string."
   (parsec-collect*
    (heading)
-   (parsec-optional* (parsec-string " "))
+   (ignore-whitespace)
    (parsec-optional-maybe (year))))
 
 (defun heading-year-month ()
@@ -70,12 +70,12 @@ words for the days of the week."
    (heading-year)
    (parsec-ch ?-)
    (parsec-many-as-string (parsec-digit))
-   (parsec-optional* (parsec-string " "))
+   (ignore-whitespace)
    (parsec-many-as-string (parsec-letter))))
 
 (defun heading-year-month-day ()
   (parsec-and (heading-year-month)
-	      (parsec-optional* (parsec-string " "))
+	      (ignore-whitespace)
 	      (parsec-many-as-string (parsec-letter))))
 
 (provide 'timeline)
