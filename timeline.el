@@ -50,33 +50,61 @@ words for the days of the week."
    (regexp-opt (list "Monday" "Tuesday" "Wednesday" "Thursday"
 		     "Friday" "Saturday" "Sunday"))))
 
+(defun month ()
+  (let ((months (list "January" "February" "March" "April" "May" "June"
+		      "July" "August" "September" "October" "November"
+		      "December")))
+    (parsec-re
+     (regexp-opt months))))
+
 (defun ignore-whitespace ()
   "Parses whitespace and ignores the result."
   (parsec-optional* (parsec-ch ?\s)))
 
 (defun heading ()
-  "Parses an Org-mode header."
+  "Parses an Org header."
   (parsec-many1-as-string (parsec-ch ?*)))
 
 (defun heading-year ()
-  "Parses an Org header followed by an optional date-string."
+  "Parses an Org header of the form
+   * yyyy."
   (parsec-collect*
    (heading)
    (ignore-whitespace)
-   (parsec-optional-maybe (year))))
+   (year)))
 
 (defun heading-year-month ()
+  "Parses an Org header of the form
+   * yyyy-mm <Month-name>."
   (parsec-collect*
    (heading-year)
    (dash)
-   (parsec-many-as-string (parsec-digit))
+   (day-or-month*)
    (ignore-whitespace)
-   (parsec-many-as-string (parsec-letter))))
+   (month)))
 
 (defun heading-year-month-day ()
-  (parsec-and (heading-year-month)
-	      (ignore-whitespace)
-	      (parsec-many-as-string (parsec-letter))))
+  (parsec-collect*
+   (heading)
+   (ignore-whitespace)
+   (date)
+   (ignore-whitespace)
+   (day-of-week)))
+
+(defun parse* (inp)
+  (when inp
+    (parsec-with-input inp
+      (parsec-parse
+       (parsec-collect*
+	(heading-year)
+	(parsec-optional* (parsec-eol))
+	(heading-year-month)
+	(parsec-optional* (parsec-eol))
+	(heading-year-month-day)
+	(parsec-optional* (parsec-eol-or-eof)))))))
+
+(defun parse! (inp)
+  (parse* inp))
 
 (provide 'timeline)
 ;;; timeline.el ends here
