@@ -1,40 +1,52 @@
 ;;; timeline.el
-;;; An attempt at parsing Org datetrees into timelines for interactive
-;;; viewing
+;;; An attempt at parsing Org datetrees into timelines for interactive viewing
 
 (require 'parsec)
 
-(defun year () (parsec-count-as-string 4 (parsec-digit)))
+(defun year ()
+  "Parses a four-digit year."
+  (parsec-count-as-string 4 (parsec-digit)))
 
-(defun day-or-month () (parsec-count-as-string 2 (parsec-digit)))
+(defun day-or-month* ()
+  "Parses a two-digit month or day. Internal."
+  (parsec-count-as-string 2 (parsec-digit)))
 
-(defun date () (parsec-collect-as-string
-		(year)
-		(parsec-ch ?-)
-		(day-or-month)
-		(parsec-ch ?-)
-		(day-or-month)))
+(defun dash ()
+  "Parses a hyphen/dash character. Internal."
+  (parsec-ch ?-))
+
+(defun day-or-month ()
+  "Parses a two-digit day or month, surrounded by dashes. Internal."
+  (parsec-between (dash) (dash) (day-or-month*)))
+
+(defun date ()
+  "Parses a date in ISO-8601 format. Returns a list of the components."
+  (parsec-collect*
+   (year)
+   (day-or-month)
+   (day-or-month*)))
 
 (defun day-of-week ()
+  "Parses a string containing one of the seven English-language
+words for the days of the week."
   (parsec-re
    (regexp-opt (list "Monday" "Tuesday" "Wednesday" "Thursday"
 		     "Friday" "Saturday" "Sunday"))))
 
-(parsec-with-input "Monday"
-  (parsec-parse (day-of-week)))
+(defun ignore-whitespace ()
+  "Parses whitespace and ignores the result."
+  (parsec-optional* (parsec-ch ?\s)))
 
-(defun heading () (parsec-many1-as-string (parsec-ch ?*)))
-
-(parsec-with-input "1912-06-01" (parsec-parse (date)))
+(defun heading ()
+  "Parses an Org-mode header."
+  (parsec-many1-as-string (parsec-ch ?*)))
 
 (defun heading-year ()
-  "Parses an Org header (string of * followed by optional title)"
+  "Parses an Org header followed by an optional date-string."
   (parsec-collect*
    (heading)
    (parsec-optional* (parsec-string " "))
-   (year)))
-
-(parsec-with-input "**** 2015" (parsec-parse (heading-year)))
+   (parsec-optional-maybe (year))))
 
 (defun heading-year-month ()
   (parsec-collect*
@@ -49,10 +61,5 @@
 	      (parsec-optional* (parsec-string " "))
 	      (parsec-many-as-string (parsec-letter))))
 
-;; example:
-;; * 1912
-;; ** 1912-06 June
-;; *** 1912-06-01 Saturday
-
-(parsec-with-input "* 1912-06 June"
-  (parsec-parse (heading-year-month)))
+(provide 'timeline)
+;;; timeline.el ends here
