@@ -1,5 +1,22 @@
-;;; timeline.el
-;;; An attempt at parsing Org datetrees into timelines for interactive viewing
+;;; timeline.el ---  parse Org datetrees into timelines -*- lexical-binding:t -*-
+
+;; Author: Ben Lieberman
+;; Version: 0.1
+;; Package-Requires ((parsec "20180730.16"))
+;; Keywords: parsing, Org-mode
+;; URL: https://github.com/bhlieberman/date-uhh
+
+;;; Commentary
+
+;; This package provides simple facilities for parsing Org date-trees of the
+;; form:
+;; * 2015
+;; ** 2015-06 June
+;; *** 2015-06-01 Monday
+;; into a visual timeline. Primarily intended for writing/research-oriented
+;; projects that want to take advantage of Org's strong integration with
+;; the Emacs calendar while also providing a linear view of the dates in
+;; question outside the context of the Org agenda.
 
 (require 'parsec)
 
