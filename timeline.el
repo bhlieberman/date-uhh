@@ -18,6 +18,7 @@
 ;; the Emacs calendar while also providing a linear view of the dates in
 ;; question outside the context of the Org agenda.
 
+(require 'cl-macs)
 (require 'parsec)
 
 (defun year ()
@@ -46,11 +47,14 @@
 (defun day-of-week ()
   "Parses a string containing one of the seven English-language
 words for the days of the week."
-  (parsec-re
-   (regexp-opt (list "Monday" "Tuesday" "Wednesday" "Thursday"
-		     "Friday" "Saturday" "Sunday"))))
+  (let ((days (list "Monday" "Tuesday" "Wednesday" "Thursday"
+			     "Friday" "Saturday" "Sunday")))
+    (parsec-re
+     (regexp-opt days))))
 
 (defun month ()
+  "Parses a string containing one of the twelve English-language
+words for the months of the year."
   (let ((months (list "January" "February" "March" "April" "May" "June"
 		      "July" "August" "September" "October" "November"
 		      "December")))
@@ -77,17 +81,22 @@ words for the days of the week."
   "Parses an Org header of the form
    * yyyy-mm <Month-name>."
   (parsec-collect*
-   (heading-year)
-   (dash)
+   (heading)
+   (ignore-whitespace)
+   (parsec-optional* (year))
+   (parsec-optional* (dash))
    (day-or-month*)
    (ignore-whitespace)
    (month)))
 
 (defun heading-year-month-day ()
+  "Parses an Org header of the form ** yyyy-mm-dd <Day-name>. Throws
+away the year and month, preserving only the date number and
+name."
   (parsec-collect*
    (heading)
    (ignore-whitespace)
-   (date)
+   (parsec-and (year) (day-or-month) (day-or-month*))
    (ignore-whitespace)
    (day-of-week)))
 
@@ -104,7 +113,17 @@ words for the days of the week."
 	(parsec-optional* (parsec-eol-or-eof)))))))
 
 (defun parse! (inp)
+  "Runs the parser."
   (parse* inp))
+
+(defun process-list (inp)
+  "Broken. Needs to be fixed."
+  (let ((dict (make-hash-table)))
+    (cl-destructuring-bind (heading-1 heading-2 heading-3) (parse! inp)
+      (cl-destructuring-bind `((_ year) (_ month-num month-str) (_ day-num day-str))
+	  `(,heading-1 ,heading-2 ,heading-3)
+	(puthash year (list month-num day-num) dict)))
+    dict))
 
 (provide 'timeline)
 ;;; timeline.el ends here
