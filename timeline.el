@@ -18,7 +18,6 @@
 ;; the Emacs calendar while also providing a linear view of the dates in
 ;; question outside the context of the Org agenda.
 
-(require 'cl-macs)
 (require 'parsec)
 
 (defun year ()
@@ -116,14 +115,10 @@ name."
   "Runs the parser."
   (parse* inp))
 
-(defun process-list (inp)
-  "Broken. Needs to be fixed."
-  (let ((dict (make-hash-table)))
-    (cl-destructuring-bind (heading-1 heading-2 heading-3) (parse! inp)
-      (cl-destructuring-bind `((_ year) (_ month-num month-str) (_ day-num day-str))
-	  `(,heading-1 ,heading-2 ,heading-3)
-	(puthash year (list month-num day-num) dict)))
-    dict))
+(defun create-tree (inp)
+   "WIP."
+   (cl-destructuring-bind ((_ year) (_ month _) (_ day _)) (parse! inp)
+     `(,year ,month ,day)))
 
 (provide 'timeline)
 ;;; timeline.el ends here
