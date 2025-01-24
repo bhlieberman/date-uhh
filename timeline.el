@@ -18,6 +18,7 @@
 ;; the Emacs calendar while also providing a linear view of the dates in
 ;; question outside the context of the Org agenda.
 
+(require 'dash)
 (require 'parsec)
 
 (defun year ()
@@ -106,19 +107,22 @@ name."
        (parsec-collect*
 	(heading-year)
 	(parsec-optional* (parsec-eol))
-	(heading-year-month)
-	(parsec-optional* (parsec-eol))
-	(heading-year-month-day)
-	(parsec-optional* (parsec-eol-or-eof)))))))
+	(parsec-many1
+	 (parsec-collect*
+	  (heading-year-month)
+	  (parsec-optional* (parsec-eol))
+	  (heading-year-month-day)
+	  (parsec-optional* (parsec-eol-or-eof)))))))))
 
 (defun parse! (inp)
   "Runs the parser."
   (parse* inp))
 
 (defun create-tree (inp)
-   "WIP."
-   (cl-destructuring-bind ((_ year) (_ month _) (_ day _)) (parse! inp)
-     `(,year ,month ,day)))
+  "Creates a flat list of the nodes of the \"tree\" approximated by the nested list."
+   (let ((tree (parse! inp)))
+     (->> (-tree-seq 'listp 'identity tree)
+	  (-remove 'listp))))
 
 (provide 'timeline)
 ;;; timeline.el ends here
