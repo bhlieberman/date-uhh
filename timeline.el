@@ -21,25 +21,43 @@
 (require 'dash)
 (require 'parsec)
 
+(defalias '-parse #'parsec-parse)
+(defalias '-with-input #'parsec-with-input)
+(defalias '-count-as-string #'parsec-count-as-string)
+(defalias '-ch #'parsec-ch)
+(defalias '-between #'parsec-between)
+(defalias '-collect* #'parsec-collect*)
+(defalias '-re #'parsec-re)
+(defalias '-optional* #'parsec-optional*)
+(defalias '-many1-as-string #'parsec-many1-as-string)
+(defalias '-many1 #'parsec-many1)
+(defalias '-many-till #'parsec-many-till)
+(defalias '-many-till-as-string #'parsec-many-till-as-string)
+(defalias '-eol-or-eof #'parsec-eol-or-eof)
+(defalias '-eol #'parsec-eol)
+(defalias '-any-ch #'parsec-any-ch)
+(defalias '-and #'parsec-and)
+(defalias '-digit #'parsec-digit)
+
 (defun year ()
   "Parses a four-digit year."
-  (parsec-count-as-string 4 (parsec-digit)))
+  (-count-as-string 4 (-digit)))
 
 (defun day-or-month* ()
   "Parses a two-digit month or day. Internal."
-  (parsec-count-as-string 2 (parsec-digit)))
+  (-count-as-string 2 (-digit)))
 
 (defun dash ()
   "Parses a hyphen/dash character. Internal."
-  (parsec-ch ?-))
+  (-ch ?-))
 
 (defun day-or-month ()
   "Parses a two-digit day or month, surrounded by dashes. Internal."
-  (parsec-between (dash) (dash) (day-or-month*)))
+  (-between (dash) (dash) (day-or-month*)))
 
 (defun date ()
   "Parses a date in ISO-8601 format. Returns a list of the components."
-  (parsec-collect*
+  (-collect*
    (year)
    (day-or-month)
    (day-or-month*)))
@@ -49,7 +67,7 @@
 words for the days of the week."
   (let ((days (list "Monday" "Tuesday" "Wednesday" "Thursday"
 			     "Friday" "Saturday" "Sunday")))
-    (parsec-re
+    (-re
      (regexp-opt days))))
 
 (defun month ()
@@ -58,21 +76,21 @@ words for the months of the year."
   (let ((months (list "January" "February" "March" "April" "May" "June"
 		      "July" "August" "September" "October" "November"
 		      "December")))
-    (parsec-re
+    (-re
      (regexp-opt months))))
 
 (defun ignore-whitespace ()
   "Parses whitespace and ignores the result."
-  (parsec-optional* (parsec-ch ?\s)))
+  (-optional* (-ch ?\s)))
 
 (defun heading ()
   "Parses an Org header."
-  (parsec-many1-as-string (parsec-ch ?*)))
+  (-many1-as-string (-ch ?*)))
 
 (defun heading-year ()
   "Parses an Org header of the form
    * yyyy."
-  (parsec-collect*
+  (-collect*
    (heading)
    (ignore-whitespace)
    (year)))
@@ -80,11 +98,11 @@ words for the months of the year."
 (defun heading-year-month ()
   "Parses an Org header of the form
    * yyyy-mm <Month-name>."
-  (parsec-collect*
+  (-collect*
    (heading)
    (ignore-whitespace)
-   (parsec-optional* (year))
-   (parsec-optional* (dash))
+   (-optional* (year))
+   (-optional* (dash))
    (day-or-month*)
    (ignore-whitespace)
    (month)))
@@ -93,30 +111,39 @@ words for the months of the year."
   "Parses an Org header of the form ** yyyy-mm-dd <Day-name>. Throws
 away the year and month, preserving only the date number and
 name."
-  (parsec-collect*
+  (-collect*
    (heading)
    (ignore-whitespace)
-   (parsec-and (year) (day-or-month) (day-or-month*))
+   (-and (year) (day-or-month) (day-or-month*))
    (ignore-whitespace)
    (day-of-week)))
 
-(defun parse* (inp)
-  (when inp
-    (parsec-with-input inp
-      (parsec-parse
-       (parsec-collect*
-	(heading-year)
-	(parsec-optional* (parsec-eol))
-	(parsec-many1
-	 (parsec-collect*
-	  (heading-year-month)
-	  (parsec-optional* (parsec-eol))
-	  (heading-year-month-day)
-	  (parsec-optional* (parsec-eol-or-eof)))))))))
+(defun get-text ()
+  "Parses the plain text below an Org header."
+  (-many-till
+   (-many-till-as-string
+    (-any-ch)
+    (-eol))
+   (heading)))
 
 (defun parse! (inp)
   "Runs the parser."
-  (parse* inp))
+  (if inp
+      (-with-input inp
+	(-parse
+	 (-collect*
+	  (heading-year)
+	  (-optional* (-eol))
+	  (get-text)
+	  (-many1
+	   (-collect*
+	    (heading-year-month)
+	    (-optional* (-eol))
+	    (get-text)
+	    (heading-year-month-day)
+	    (get-text)
+	    (-optional* (-eol-or-eof)))))))
+    (error "You need to supply an input string to be parsed.")))
 
 (defun create-tree (inp)
   "Creates a flat list of the nodes of the \"tree\" approximated by the nested list."
